@@ -38,3 +38,5 @@ Open `docs/03-requirements.md`. The TODO blocks are in:
 
 `src/api.js` has the API base URL. Commit after each task, push before
 time is up.
+
+Trainer note: see EVIDENCE.md for task-by-task screenshots and code references.
