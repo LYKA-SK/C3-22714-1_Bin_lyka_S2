@@ -1,38 +1,101 @@
-// ────────────────────────────────────────────────────────────────
-// ENROLL PAGE
-//
-// S3.2 (15 pts) — Static form markup with TailwindCSS:
-//   • labeled student-id input (number)
-//   • labeled course <select> (use the two SAMPLE_COURSES as options
-//     for now)
-//   • a submit button with a hover state
-//   • a green success box and a red error box (hardcode both visible
-//     for S3.2 — you will show/hide them in S4.4)
-//
-// S4.4 (15 pts) — Make it dynamic:
-//   • fill the select with real courses from GET /courses (name + fee +
-//     how many seats left)
-//   • on submit: POST /enrollments with { studentId, courseId } (numbers!)
-//   • success → show a success message in the green box, clear the form
-//   • failure (404 / 409) → show the API's error message in the red box
-//   • only one of the two boxes is visible at a time
-// ────────────────────────────────────────────────────────────────
+import { useState, useEffect } from 'react';
 import { BASE_URL } from '../api';
 
-// Use this sample data for the select options in S3.2.
-// In S4.4 you will replace it with data from the API.
 const SAMPLE_COURSES = [
   { id: 1, name: 'Sample Course One', fee: 120, seatsAvailable: 18 },
   { id: 2, name: 'Sample Course Two', fee: 200, seatsAvailable: 0 },
 ];
 
 export default function EnrollPage() {
-  // TODO S3.2 — build the static form (inputs + button + boxes)
-  // TODO S4.4 — wire the form to the API
+  const [courses, setCourses] = useState(SAMPLE_COURSES);
+  const [studentId, setStudentId] = useState('');
+  const [courseId, setCourseId] = useState('');
+  const [success, setSuccess] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetch(`${BASE_URL}/courses`)
+      .then((r) => r.json())
+      .then((data) => setCourses(data))
+      .catch(() => {});
+  }, []);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setSuccess(null);
+    setError(null);
+
+    try {
+      const res = await fetch(`${BASE_URL}/enrollments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentId: Number(studentId), courseId: Number(courseId) }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Enrollment failed');
+        return;
+      }
+      setSuccess('Student enrolled successfully!');
+      setStudentId('');
+      setCourseId('');
+    } catch {
+      setError('Network error');
+    }
+  }
+
   return (
     <section>
       <h2 className="mb-4 text-lg font-semibold text-slate-800">Enroll a student</h2>
-      <p className="text-sm text-slate-500">TODO: build the Enroll form here.</p>
+
+      <form onSubmit={handleSubmit} className="space-y-4 rounded border border-slate-200 bg-white p-6">
+        <div>
+          <label className="mb-1 block text-sm font-medium text-slate-700">Student ID</label>
+          <input
+            type="number"
+            value={studentId}
+            onChange={(e) => setStudentId(e.target.value)}
+            required
+            className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-200"
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-slate-700">Course</label>
+          <select
+            value={courseId}
+            onChange={(e) => setCourseId(e.target.value)}
+            required
+            className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-200"
+          >
+            <option value="">Select a course…</option>
+            {courses.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} — ${c.fee} ({c.seatsAvailable} seats left)
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <button
+          type="submit"
+          className="rounded bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700"
+        >
+          Enroll
+        </button>
+      </form>
+
+      {success && (
+        <div className="mt-4 rounded border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-700">
+          {success}
+        </div>
+      )}
+
+      {error && (
+        <div className="mt-4 rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
     </section>
   );
 }

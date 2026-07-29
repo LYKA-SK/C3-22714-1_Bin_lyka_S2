@@ -1,25 +1,6 @@
-// ────────────────────────────────────────────────────────────────
-// STUDENT PAGE
-//
-// S3.3 (15 pts) — Static markup with TailwindCSS, using SAMPLE_STUDENT:
-//   • a student-id input + "Load" button (styled, with hover state)
-//   • a student info card (name, email, phone)
-//   • an enrollments table: course name, fee, enroll date,
-//     status badge (ACTIVE = green, DROPPED = gray),
-//     and a "Drop" button ONLY on ACTIVE rows
-//
-// S4.3 (10 pts) — Clicking "Load" fetches GET /students/<id> and shows
-//   the real student + enrollments. For an unknown id, show the API's
-//   error message (red box) instead of the card.
-//
-// S4.5 (10 pts) — Clicking "Drop" calls PUT /enrollments/<id>/drop,
-//   then reloads the student so the status badge updates and the button
-//   disappears.
-// ────────────────────────────────────────────────────────────────
+import { useState } from 'react';
 import { BASE_URL } from '../api';
 
-// Use this sample data to build the static markup for S3.3.
-// In S4.3 you will replace it with data from the API.
 const SAMPLE_STUDENT = {
   id: 1,
   name: 'Sample Student',
@@ -32,13 +13,115 @@ const SAMPLE_STUDENT = {
 };
 
 export default function StudentPage() {
-  // TODO S3.3 — build the static page (input + card + enrollments table)
-  // TODO S4.3 — load the real student from the API on "Load"
-  // TODO S4.5 — make the "Drop" button work, then reload the student
+  const [studentId, setStudentId] = useState('');
+  const [student, setStudent] = useState(SAMPLE_STUDENT);
+  const [error, setError] = useState(null);
+
+  async function loadStudent() {
+    setError(null);
+    setStudent(null);
+
+    try {
+      const res = await fetch(`${BASE_URL}/students/${studentId}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Student not found');
+        return;
+      }
+      setStudent(data);
+    } catch {
+      setError('Network error');
+    }
+  }
+
+  async function dropEnrollment(enrollmentId) {
+    try {
+      await fetch(`${BASE_URL}/enrollments/${enrollmentId}/drop`, { method: 'PUT' });
+      loadStudent();
+    } catch {
+      setError('Failed to drop enrollment');
+    }
+  }
+
   return (
     <section>
       <h2 className="mb-4 text-lg font-semibold text-slate-800">Student lookup</h2>
-      <p className="text-sm text-slate-500">TODO: build the Student page here.</p>
+
+      <div className="mb-4 flex gap-2">
+        <input
+          type="number"
+          placeholder="Student ID"
+          value={studentId}
+          onChange={(e) => setStudentId(e.target.value)}
+          className="flex-1 rounded border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-200"
+        />
+        <button
+          onClick={loadStudent}
+          className="rounded bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700"
+        >
+          Load
+        </button>
+      </div>
+
+      {error && (
+        <div className="mb-4 rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      {student && (
+        <div className="mb-6 rounded border border-slate-200 bg-white p-4">
+          <h3 className="mb-2 text-base font-semibold text-slate-800">{student.name}</h3>
+          <p className="text-sm text-slate-600">Email: {student.email}</p>
+          <p className="text-sm text-slate-600">Phone: {student.phone}</p>
+        </div>
+      )}
+
+      {student && student.enrollments?.length > 0 && (
+        <div className="overflow-x-auto rounded border border-slate-200">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="bg-slate-100 text-slate-600">
+                <th className="px-4 py-2 font-medium">Course</th>
+                <th className="px-4 py-2 font-medium">Fee</th>
+                <th className="px-4 py-2 font-medium">Enrolled</th>
+                <th className="px-4 py-2 font-medium">Status</th>
+                <th className="px-4 py-2 font-medium"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {student.enrollments.map((e, i) => (
+                <tr key={e.id} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                  <td className="px-4 py-2 text-slate-800">{e.course.name}</td>
+                  <td className="px-4 py-2 text-slate-800">${e.course.fee}</td>
+                  <td className="px-4 py-2 text-slate-500">{e.enrollDate}</td>
+                  <td className="px-4 py-2">
+                    <span
+                      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        e.status === 'ACTIVE'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-slate-200 text-slate-600'
+                      }`}
+                    >
+                      {e.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2">
+                    {e.status === 'ACTIVE' && (
+                      <button
+                        onClick={() => dropEnrollment(e.id)}
+                        className="rounded bg-red-500 px-3 py-1 text-xs font-medium text-white hover:bg-red-600"
+                      >
+                        Drop
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 }

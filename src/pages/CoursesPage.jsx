@@ -1,38 +1,74 @@
-// ────────────────────────────────────────────────────────────────
-// COURSES PAGE
-//
-// S3.1 (15 pts) — Static markup with TailwindCSS, using SAMPLE_COURSES:
-//   • a search input styled with Tailwind (full width, border, focus state)
-//   • a table: styled header row, borders or zebra rows, one row per
-//     course with id, name, fee (show it as "$120"), and a seats badge
-//   • badge shows "available / total" — green when seatsAvailable > 0,
-//     red when it is 0
-//
-// S4.1 (10 pts) — Load the real courses from GET /courses when the page
-//   mounts (useEffect + fetch). Show "Loading…" while the request runs.
-//   Replace SAMPLE_COURSES with the fetched data.
-//
-// S4.2 (10 pts) — Make the search input work: typing (or submitting)
-//   refetches with GET /courses?search=<text> so the table only shows
-//   matching names.
-// ────────────────────────────────────────────────────────────────
+import { useState, useEffect } from 'react';
 import { BASE_URL } from '../api';
 
-// Use this sample data to build the static markup for S3.1.
-// In S4.1 you will replace it with data from the API.
 const SAMPLE_COURSES = [
   { id: 1, name: 'Sample Course One', fee: 120, seatsTotal: 20, seatsAvailable: 18 },
   { id: 2, name: 'Sample Course Two', fee: 200, seatsTotal: 10, seatsAvailable: 0 },
 ];
 
 export default function CoursesPage() {
-  // TODO S3.1 — build the static page (search input + table)
-  // TODO S4.1 — load real courses from the API
-  // TODO S4.2 — wire the search input to ?search=
+  const [courses, setCourses] = useState(SAMPLE_COURSES);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    const params = search ? `?search=${encodeURIComponent(search)}` : '';
+    fetch(`${BASE_URL}/courses${params}`)
+      .then((r) => r.json())
+      .then((data) => setCourses(data))
+      .catch(() => setCourses(SAMPLE_COURSES))
+      .finally(() => setLoading(false));
+  }, [search]);
+
   return (
     <section>
       <h2 className="mb-4 text-lg font-semibold text-slate-800">Courses</h2>
-      <p className="text-sm text-slate-500">TODO: build the Courses page here.</p>
+
+      <input
+        type="text"
+        placeholder="Search courses…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="mb-4 w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-200"
+      />
+
+      {loading ? (
+        <p className="text-sm text-slate-500">Loading…</p>
+      ) : (
+        <div className="overflow-x-auto rounded border border-slate-200">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="bg-slate-100 text-slate-600">
+                <th className="px-4 py-2 font-medium">ID</th>
+                <th className="px-4 py-2 font-medium">Name</th>
+                <th className="px-4 py-2 font-medium">Fee</th>
+                <th className="px-4 py-2 font-medium">Seats</th>
+              </tr>
+            </thead>
+            <tbody>
+              {courses.map((c, i) => (
+                <tr key={c.id} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                  <td className="px-4 py-2 text-slate-500">{c.id}</td>
+                  <td className="px-4 py-2 text-slate-800">{c.name}</td>
+                  <td className="px-4 py-2 text-slate-800">${c.fee}</td>
+                  <td className="px-4 py-2">
+                    <span
+                      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        c.seatsAvailable > 0
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-red-100 text-red-700'
+                      }`}
+                    >
+                      {c.seatsAvailable} / {c.seatsTotal}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 }
