@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { BASE_URL } from '../api';
+import { useState } from 'react';
 
 const SAMPLE_COURSES = [
   { id: 1, name: 'Sample Course One', fee: 120, seatsAvailable: 18 },
@@ -7,40 +6,19 @@ const SAMPLE_COURSES = [
 ];
 
 export default function EnrollPage() {
-  const [courses, setCourses] = useState(SAMPLE_COURSES);
   const [studentId, setStudentId] = useState('');
   const [courseId, setCourseId] = useState('');
-  const [success, setSuccess] = useState(null);
-  const [error, setError] = useState(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showError, setShowError] = useState(false);
 
-  useEffect(() => {
-    fetch(`${BASE_URL}/courses`)
-      .then((r) => r.json())
-      .then((data) => setCourses(data))
-      .catch(() => {});
-  }, []);
-
-  async function handleSubmit(e) {
+  function handleSubmit(e) {
     e.preventDefault();
-    setSuccess(null);
-    setError(null);
-
-    try {
-      const res = await fetch(`${BASE_URL}/enrollments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentId: Number(studentId), courseId: Number(courseId) }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || 'Enrollment failed');
-        return;
-      }
-      setSuccess('Student enrolled successfully!');
-      setStudentId('');
-      setCourseId('');
-    } catch {
-      setError('Network error');
+    if (studentId && courseId) {
+      setShowSuccess(true);
+      setShowError(false);
+    } else {
+      setShowError(true);
+      setShowSuccess(false);
     }
   }
 
@@ -69,7 +47,7 @@ export default function EnrollPage() {
             className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-200"
           >
             <option value="">Select a course…</option>
-            {courses.map((c) => (
+            {SAMPLE_COURSES.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name} — ${c.fee} ({c.seatsAvailable} seats left)
               </option>
@@ -85,15 +63,15 @@ export default function EnrollPage() {
         </button>
       </form>
 
-      {success && (
+      {showSuccess && (
         <div className="mt-4 rounded border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-700">
-          {success}
+          Student enrolled successfully!
         </div>
       )}
 
-      {error && (
+      {showError && (
         <div className="mt-4 rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
+          Please fill in all fields.
         </div>
       )}
     </section>
